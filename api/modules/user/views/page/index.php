@@ -15,11 +15,11 @@ UserAsset::register($this);
 ?>
 <div x-data="userPage()">
     <div class="page-head">
-        <h1>人員管理</h1>
-        <button class="btn primary" @click="openCreate()">+ 新增人員</button>
+        <h1 style="margin:0">人員管理</h1>
+        <button class="ts-button" @click="openCreate()">+ 新增人員</button>
     </div>
-    <div class="card">
-        <table>
+    <div class="ts-box">
+        <table class="ts-table">
             <thead>
             <tr><th>帳號</th><th>姓名</th><th>角色</th><th>建立時間</th><th></th></tr>
             </thead>
@@ -28,11 +28,11 @@ UserAsset::register($this);
                 <tr>
                     <td x-text="u.username"></td>
                     <td x-text="u.display_name"></td>
-                    <td><span class="badge" x-text="u.role"></span></td>
+                    <td><span class="ts-chip" x-text="u.role"></span></td>
                     <td x-text="ts(u.created_time)"></td>
                     <td>
-                        <button class="btn" @click="openEdit(u)">編輯</button>
-                        <button class="btn danger" @click="remove(u)">刪除</button>
+                        <button class="ts-button is-small is-outlined" @click="openEdit(u)">編輯</button>
+                        <button class="ts-button is-small is-negative" @click="remove(u)">刪除</button>
                     </td>
                 </tr>
             </template>
@@ -41,25 +41,31 @@ UserAsset::register($this);
         </table>
     </div>
 
-    <div class="modal" x-show="mode !== 0" @click.self="mode = 0">
-        <div class="card modal-card">
+    <dialog class="ts-modal" :open="mode !== 0" @click.self="mode = 0">
+        <div class="content">
             <h2 x-text="mode === 1 ? '新增人員' : '編輯人員'"></h2>
             <p class="error" x-show="message" x-text="message"></p>
-            <label>帳號<input x-model="form.username"></label>
-            <label>密碼（留空表示不變）<input type="password" x-model="form.password"></label>
-            <label>姓名<input x-model="form.display_name"></label>
-            <label>角色
-                <select x-model="form.role">
+            <label class="app-field">帳號
+                <span class="ts-input"><input x-model="form.username"></span>
+            </label>
+            <label class="app-field">密碼（留空表示不變）
+                <span class="ts-input"><input type="password" x-model="form.password"></span>
+            </label>
+            <label class="app-field">姓名
+                <span class="ts-input"><input x-model="form.display_name"></span>
+            </label>
+            <label class="app-field">角色
+                <span class="ts-input"><select x-model="form.role">
                     <option value="user">user</option>
                     <option value="admin">admin</option>
-                </select>
+                </select></span>
             </label>
-            <div class="row">
-                <button class="btn" @click="mode = 0">取消</button>
-                <button class="btn primary" @click="submit()" x-text="mode === 1 ? '送出' : '儲存'"></button>
+            <div class="ts-buttons is-end-aligned">
+                <button class="ts-button is-outlined" @click="mode = 0">取消</button>
+                <button class="ts-button" @click="submit()" x-text="mode === 1 ? '送出' : '儲存'"></button>
             </div>
         </div>
-    </div>
+    </dialog>
 </div>
 <script>
     window.__ITEMS__ = <?= json_encode($items) ?>;

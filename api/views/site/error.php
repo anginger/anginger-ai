@@ -11,8 +11,10 @@ use yii\helpers\Html;
 /* @var $exception \Throwable */
 $this->title = '錯誤 - Anginger AI';
 ?>
-<div class="card login-card">
-    <h1><?= Html::encode($this->title) ?></h1>
-    <p class="error"><?= Html::encode($exception->getMessage()) ?></p>
-    <p><a href="/">回到首頁</a></p>
-</div>
+<main class="ts-app-center">
+    <div class="ts-box login-wrap">
+        <h1><?= Html::encode($this->title) ?></h1>
+        <p class="error"><?= Html::encode($exception->getMessage()) ?></p>
+        <p><a href="/">回到首頁</a></p>
+    </div>
+</main>

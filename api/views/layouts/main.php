@@ -7,12 +7,12 @@
 
 use anginger\assets\AppAsset;
 use yii\helpers\Html;
-use yii\helpers\Url;
 
 /* @var $this \yii\web\View */
 /* @var $content string */
 
 AppAsset::register($this);
+$path = Yii::$app->request->pathInfo;
 $this->beginPage();
 ?><!DOCTYPE html>
 <html lang="zh-Hant">
@@ -24,22 +24,26 @@ $this->beginPage();
 </head>
 <body>
 <?php $this->beginBody() ?>
-<header class="topbar">
-    <div class="brand">Anginger AI</div>
-    <nav class="nav">
-        <a href="<?= Url::to(['/chat']) ?>">Chat</a>
-        <?php if (!Yii::$app->user->isGuest && Yii::$app->user->identity->role === 'admin'): ?>
-            <a href="<?= Url::to(['/user']) ?>">人員管理</a>
-        <?php endif; ?>
-    </nav>
-    <div class="user">
+<header class="ts-app-topbar">
+    <div class="start">
+        <div class="item is-text"><strong>Anginger AI</strong></div>
+    </div>
+    <div class="center">
+        <nav class="ts-menu">
+            <a class="item<?= $path === 'chat' ? ' is-active' : '' ?>" href="/chat">Chat</a>
+            <?php if (!Yii::$app->user->isGuest && Yii::$app->user->identity->role === 'admin'): ?>
+                <a class="item<?= $path === 'user' ? ' is-active' : '' ?>" href="/user">人員管理</a>
+            <?php endif; ?>
+        </nav>
+    </div>
+    <div class="end">
         <?php if (!Yii::$app->user->isGuest): ?>
-            <span><?= Html::encode(Yii::$app->user->identity->display_name) ?></span>
-            <a href="<?= Url::to(['/site/logout']) ?>">登出</a>
+            <div class="item is-text"><?= Html::encode(Yii::$app->user->identity->display_name) ?></div>
+            <a class="item" href="/site/logout">登出</a>
         <?php endif; ?>
     </div>
 </header>
-<main class="container">
+<main class="ts-container app-main">
     <?= $content ?>
 </main>
 <?php $this->endBody() ?>

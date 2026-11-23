@@ -8,18 +8,20 @@
 /* @var $this \yii\web\View */
 $this->title = '登入 - Anginger AI';
 ?>
-<div class="card login-card" x-data="loginForm()">
-    <h1>Anginger AI</h1>
-    <p class="muted">ChatGPT-style chat powered by OpenAI —請登入繼續</p>
-    <p class="error" x-show="message" x-text="message"></p>
-    <label>帳號
-        <input x-model="username" @keyup.enter="submit()" autofocus>
-    </label>
-    <label>密碼
-        <input type="password" x-model="password" @keyup.enter="submit()">
-    </label>
-    <button class="btn primary" style="width:100%" @click="submit()" :disabled="loading">登入</button>
-</div>
+<main class="ts-app-center">
+    <div class="ts-box login-wrap" x-data="loginForm()">
+        <h1>Anginger AI</h1>
+        <p class="muted">自架版 ChatGPT — 請登入繼續</p>
+        <p class="error" x-show="message" x-text="message"></p>
+        <label class="app-field">帳號
+            <span class="ts-input"><input x-model="username" @keyup.enter="submit()" autofocus></span>
+        </label>
+        <label class="app-field">密碼
+            <span class="ts-input"><input type="password" x-model="password" @keyup.enter="submit()"></span>
+        </label>
+        <button class="ts-button is-fluid" @click="submit()" :disabled="loading">登入</button>
+    </div>
+</main>
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('loginForm', () => ({
