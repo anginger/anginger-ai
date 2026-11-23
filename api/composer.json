@@ -1,0 +1,26 @@
+{
+    "name": "anginger/ai-api",
+    "description": "Anginger AI - ChatGPT-style chat app on Yii 2, proxying the OpenAI API.",
+    "license": "BSD-3-Clause",
+    "require": {
+        "php": ">=8.0",
+        "yiisoft/yii2": "~2.0.0"
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "anginger\\": ""
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
+        },
+        "process-timeout": 600
+    }
+}
