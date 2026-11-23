@@ -42,29 +42,29 @@ UserAsset::register($this);
     </div>
 
     <dialog class="ts-modal" :open="mode !== 0" @click.self="mode = 0">
-        <div class="content">
+        <form class="content" @submit.prevent="submit()">
             <h2 x-text="mode === 1 ? '新增人員' : '編輯人員'"></h2>
-            <p class="error" x-show="message" x-text="message"></p>
+            <p class="error" aria-live="polite" x-show="message" x-text="message"></p>
             <label class="app-field">帳號
-                <span class="ts-input"><input x-model="form.username"></span>
+                <span class="ts-input"><input name="username" autocomplete="off" spellcheck="false" x-model="form.username"></span>
             </label>
             <label class="app-field">密碼（留空表示不變）
-                <span class="ts-input"><input type="password" x-model="form.password"></span>
+                <span class="ts-input"><input type="password" name="password" autocomplete="new-password" x-model="form.password"></span>
             </label>
             <label class="app-field">姓名
-                <span class="ts-input"><input x-model="form.display_name"></span>
+                <span class="ts-input"><input name="display_name" autocomplete="off" x-model="form.display_name"></span>
             </label>
             <label class="app-field">角色
-                <span class="ts-input"><select x-model="form.role">
+                <span class="ts-input"><select name="role" x-model="form.role">
                     <option value="user">user</option>
                     <option value="admin">admin</option>
                 </select></span>
             </label>
             <div class="ts-buttons is-end-aligned">
-                <button class="ts-button is-outlined" @click="mode = 0">取消</button>
-                <button class="ts-button" @click="submit()" x-text="mode === 1 ? '送出' : '儲存'"></button>
+                <button class="ts-button is-outlined" type="button" @click="mode = 0">取消</button>
+                <button class="ts-button" type="submit" x-text="mode === 1 ? '送出' : '儲存'"></button>
             </div>
-        </div>
+        </form>
     </dialog>
 </div>
 <script>

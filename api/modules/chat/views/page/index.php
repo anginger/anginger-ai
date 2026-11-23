@@ -33,7 +33,7 @@ ChatAsset::register($this);
     <section class="chat-main">
         <div class="ts-box page-head">
             <h1 x-text="current ? current.title : 'Anginger AI'" style="margin:0"></h1>
-            <span class="ts-chip" x-text="model || '...'"></span>
+            <span class="ts-chip" x-text="model || '…'"></span>
             <button class="ts-button is-outlined is-small" x-show="current" @click="openSettings()">系統提示詞</button>
         </div>
 
@@ -49,30 +49,30 @@ ChatAsset::register($this);
             <div class="empty" x-show="messages.length === 0 && !loading">問點什麼吧 👋</div>
         </div>
 
-        <p class="error" x-show="error" x-text="error"></p>
+        <p class="error" aria-live="polite" x-show="error" x-text="error"></p>
 
         <div class="ts-box composer">
-            <span class="ts-input"><textarea x-model="input" rows="2" placeholder="輸入訊息，Enter 送出..."
+            <span class="ts-input"><textarea name="input" autocomplete="off" x-model="input" rows="2" placeholder="輸入訊息，Enter 送出…"
                   @keydown.enter.prevent="send()" :disabled="loading"></textarea></span>
             <button class="ts-button" @click="send()" :disabled="loading || !input.trim()">送出</button>
         </div>
     </section>
 
     <dialog class="ts-modal" :open="settingsOpen" @click.self="settingsOpen = false">
-        <div class="content">
+        <form class="content" @submit.prevent="saveSettings()">
             <h2>對話設定</h2>
-            <p class="error" x-show="settingsMessage" x-text="settingsMessage"></p>
+            <p class="error" aria-live="polite" x-show="settingsMessage" x-text="settingsMessage"></p>
             <label class="app-field">標題
-                <span class="ts-input"><input x-model="settingsForm.title"></span>
+                <span class="ts-input"><input name="title" autocomplete="off" x-model="settingsForm.title"></span>
             </label>
             <label class="app-field">系統提示詞（system prompt）
-                <span class="ts-input"><textarea x-model="settingsForm.system_prompt" rows="6" placeholder="例如：你是一位資深 PHP 工程師，回答要簡潔並給程式碼範例"></textarea></span>
+                <span class="ts-input"><textarea name="system_prompt" autocomplete="off" x-model="settingsForm.system_prompt" rows="6" placeholder="例如：你是一位資深 PHP 工程師，回答要簡潔並給程式碼範例"></textarea></span>
             </label>
             <div class="ts-buttons is-end-aligned">
-                <button class="ts-button is-outlined" @click="settingsOpen = false">取消</button>
-                <button class="ts-button" @click="saveSettings()">儲存</button>
+                <button class="ts-button is-outlined" type="button" @click="settingsOpen = false">取消</button>
+                <button class="ts-button" type="submit">儲存</button>
             </div>
-        </div>
+        </form>
     </dialog>
 </div>
 <script>
