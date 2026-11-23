@@ -28,6 +28,9 @@ $this->beginPage();
     <div class="brand">Anginger AI</div>
     <nav class="nav">
         <a href="<?= Url::to(['/chat']) ?>">Chat</a>
+        <?php if (!Yii::$app->user->isGuest && Yii::$app->user->identity->role === 'admin'): ?>
+            <a href="<?= Url::to(['/user']) ?>">人員管理</a>
+        <?php endif; ?>
     </nav>
     <div class="user">
         <?php if (!Yii::$app->user->isGuest): ?>

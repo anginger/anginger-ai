@@ -44,11 +44,11 @@ $config = [
                 'login' => 'site/login',
                 'logout' => 'site/logout',
                 // every business domain is a module with its own page + JSON API
-                '<module:chat>' => 'chat/page/index',
+                '<module:chat|user>' => '<module>/page/index',
                 // JSON/SSE API consumed by the Alpine.js frontend (fetch)
                 'api/authentic/<action:\w+>' => 'authentic/<action>',
-                'api/<module:chat>' => 'chat/api/index',
-                'api/<module:chat>/<action:\w+>' => 'chat/api/<action>',
+                'api/<module:chat|user>' => '<module>/api/index',
+                'api/<module:chat|user>/<action:\w+>' => '<module>/api/<action>',
             ],
         ],
         'errorHandler' => [
@@ -59,6 +59,7 @@ $config = [
     // owns its page route and its /api/* API
     'modules' => [
         'chat' => 'anginger\\modules\\chat\\Module',
+        'user' => 'anginger\\modules\\user\\Module',
     ],
     'params' => [
         // OpenAI settings. The key is read from the OPENAI_API_KEY env var;

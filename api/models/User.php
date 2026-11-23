@@ -18,6 +18,7 @@ use yii\web\IdentityInterface;
  * @property string $username
  * @property string $password
  * @property string $display_name
+ * @property string $role admin|user
  * @property int $created_time
  */
 class User extends ActiveRecord implements IdentityInterface

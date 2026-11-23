@@ -17,6 +17,19 @@ only talks to `/api/chat` and receives a streamed (SSE) reply.
 | AI     | OpenAI Chat Completions (`POST {baseUrl}/chat/completions`, SSE) |
 | Deploy | Docker (nginx + php-fpm + supervisord, single container, port 8888) |
 
+## Features
+
+- **Conversation management**: conversations and messages are persisted
+  (`conversations` / `messages` tables); the sidebar lists them, you can
+  reopen, rename or delete them, and every turn sends the full stored
+  context back to the model (server-side, survives reloads)
+- **System prompt per conversation**: editable in the chat UI, prepended as
+  the `system` message on every request
+- **Personnel management** (`/user`, admin role only): create/edit/delete
+  login accounts, assign `admin`/`user` roles; users only see their own
+  conversations
+- Replies stream token-by-token (SSE); the API key stays server-side
+
 ## Structure
 
 ```
