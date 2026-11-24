@@ -4,3 +4,4 @@ api/database.sqlite
 api/config.local.php
 *.log
 .DS_Store
+.playwright-cli/

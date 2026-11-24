@@ -1,4 +1,5 @@
 vendor/
+!web/assets/vendor/
 database.sqlite
 runtime/
 config.local.php

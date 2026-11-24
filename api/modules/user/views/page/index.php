@@ -13,54 +13,64 @@ use anginger\modules\user\assets\UserAsset;
 $this->title = '人員管理 - Anginger AI';
 UserAsset::register($this);
 ?>
-<div x-data="userPage()">
+<div x-data="userPage()" x-init="refresh()">
     <div class="page-head">
-        <h1>人員管理</h1>
-        <button class="btn primary" @click="openCreate()">+ 新增人員</button>
+        <h1 style="margin:0">人員管理</h1>
+        <button class="ts-button" @click="openCreate()" :disabled="ldap" :title="ldap ? 'LDAP/AD 已啟用，帳號由目錄同步，無法手動新增' : ''">+ 新增人員</button>
     </div>
-    <div class="card">
-        <table>
+    <p class="muted" x-show="ldap" x-cloak>LDAP/AD 登入已啟用：內建註冊已停用，新帳號會在使用者首次登入時自動同步；內建帳號仍可使用本機密碼登入。</p>
+    <div class="ts-box is-flush">
+        <table class="ts-table">
             <thead>
-            <tr><th>帳號</th><th>姓名</th><th>角色</th><th>建立時間</th><th></th></tr>
+            <tr><th>帳號</th><th>姓名</th><th>角色</th><th>來源</th><th>狀態</th><th>建立時間</th><th></th></tr>
             </thead>
             <tbody>
             <template x-for="u in items" :key="u.uuid">
-                <tr>
+                <tr :class="{archived: u.archived}">
                     <td x-text="u.username"></td>
                     <td x-text="u.display_name"></td>
-                    <td><span class="badge" x-text="u.role"></span></td>
+                    <td><span class="ts-chip" x-text="u.role"></span></td>
+                    <td><span class="ts-chip" :class="u.auth_source === 'ldap' ? 'm-ldap' : 'm-local'" x-text="u.auth_source === 'ldap' ? 'LDAP' : '本地'"></span></td>
+                    <td><span class="ts-chip" :class="u.archived ? 'm-archived' : 'm-ok'" x-text="u.archived ? '已封存' : '正常'"></span></td>
                     <td x-text="ts(u.created_time)"></td>
                     <td>
-                        <button class="btn" @click="openEdit(u)">編輯</button>
-                        <button class="btn danger" @click="remove(u)">刪除</button>
+                        <button class="ts-button is-small is-outlined" @click="openEdit(u)">編輯</button>
+                        <button class="ts-button is-small is-outlined" :class="u.archived ? 'is-positive' : 'is-warning'" @click="toggleArchive(u)" x-text="u.archived ? '解除封存' : '封存'"></button>
+                        <button class="ts-button is-small is-negative is-outlined" @click="remove(u)">刪除</button>
                     </td>
                 </tr>
             </template>
-            <tr x-show="items.length === 0"><td colspan="5" class="empty">尚無資料</td></tr>
+            <tr x-show="items.length === 0"><td colspan="7" class="empty">尚無資料</td></tr>
             </tbody>
         </table>
     </div>
 
-    <div class="modal" x-show="mode !== 0" @click.self="mode = 0">
-        <div class="card modal-card">
+    <dialog class="ts-modal" :open="mode !== 0" @click.self="mode = 0">
+        <form class="content" @submit.prevent="submit()">
             <h2 x-text="mode === 1 ? '新增人員' : '編輯人員'"></h2>
-            <p class="error" x-show="message" x-text="message"></p>
-            <label>帳號<input x-model="form.username"></label>
-            <label>密碼（留空表示不變）<input type="password" x-model="form.password"></label>
-            <label>姓名<input x-model="form.display_name"></label>
-            <label>角色
-                <select x-model="form.role">
+            <p class="error" aria-live="polite" x-show="message" x-text="message"></p>
+            <label class="app-field">帳號
+                <span class="ts-input"><input name="username" autocomplete="off" spellcheck="false" x-model="form.username"></span>
+            </label>
+            <label class="app-field">密碼（留空表示不變）
+                <span class="ts-input"><input type="password" name="password" autocomplete="new-password" x-model="form.password"></span>
+            </label>
+            <label class="app-field">姓名
+                <span class="ts-input"><input name="display_name" autocomplete="off" x-model="form.display_name"></span>
+            </label>
+            <label class="app-field">角色
+                <span class="ts-input"><select name="role" x-model="form.role">
                     <option value="user">user</option>
                     <option value="admin">admin</option>
-                </select>
+                </select></span>
             </label>
-            <div class="row">
-                <button class="btn" @click="mode = 0">取消</button>
-                <button class="btn primary" @click="submit()" x-text="mode === 1 ? '送出' : '儲存'"></button>
+            <div class="ts-buttons is-end-aligned">
+                <button class="ts-button is-outlined" type="button" @click="mode = 0">取消</button>
+                <button class="ts-button" type="submit" x-text="mode === 1 ? '送出' : '儲存'"></button>
             </div>
-        </div>
-    </div>
+        </form>
+    </dialog>
 </div>
 <script>
-    window.__ITEMS__ = <?= json_encode($items) ?>;
+    window.__ITEMS__ = <?= json_encode(\yii\helpers\ArrayHelper::toArray($items)) ?>;
 </script>
