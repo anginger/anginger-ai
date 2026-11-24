@@ -3,7 +3,7 @@
     "description": "Anginger AI - ChatGPT-style chat app on Yii 2, proxying the OpenAI API.",
     "license": "BSD-3-Clause",
     "require": {
-        "php": ">=8.0",
+        "php": ">=8.2",
         "yiisoft/yii2": "~2.0.0",
         "ramsey/uuid": "^4.10"
     },
