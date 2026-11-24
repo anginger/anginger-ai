@@ -16,10 +16,15 @@ use yii\web\IdentityInterface;
  *
  * @property string $uuid
  * @property string $username
- * @property string $password
+ * @property string|null $password
  * @property string $display_name
+ * @property string|null $email
  * @property string $role admin|user
+ * @property string $auth_source local|ldap
+ * @property string|null $ldap_dn
+ * @property int $archived
  * @property int $created_time
+ * @property int|null $last_login_time
  */
 class User extends ActiveRecord implements IdentityInterface
 {
@@ -30,7 +35,12 @@ class User extends ActiveRecord implements IdentityInterface
 
     public static function findIdentity($id): ?IdentityInterface
     {
-        return static::findOne($id);
+        $user = static::findOne($id);
+        // archived accounts lose their session immediately
+        if ($user !== null && $user->archived) {
+            return null;
+        }
+        return $user;
     }
 
     public static function findIdentityByAccessToken($token, $type = null): ?IdentityInterface
