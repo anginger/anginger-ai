@@ -54,7 +54,10 @@ class ApiController extends BaseController
         $request = Yii::$app->request;
 
         if ($request->method === 'GET') {
-            return $this->asJson(['model' => Yii::$app->params['openai']['model'] ?? '']);
+            return $this->asJson([
+                'model' => Yii::$app->params['openai']['model'] ?? '',
+                'stream' => (bool)(Yii::$app->params['openai']['stream'] ?? true),
+            ]);
         }
 
         $body = $request->getBodyParams();
@@ -97,7 +100,8 @@ class ApiController extends BaseController
             return $this->asJson(['message' => 'openai api key is not configured (set OPENAI_API_KEY or config.local.php)']);
         }
 
-        return $this->streamCompletion($baseUrl, $key, $model, $context, $conversation);
+        $stream = (bool)($openai['stream'] ?? true);
+        return $this->streamCompletion($baseUrl, $key, $model, $context, $conversation, $stream);
     }
 
     /**
@@ -251,7 +255,7 @@ class ApiController extends BaseController
      * Proxy a streaming chat completion from OpenAI to the client as SSE,
      * then persist the assistant reply as the conversation context.
      */
-    private function streamCompletion(string $baseUrl, string $key, string $model, array $messages, Conversation $conversation): Response
+    private function streamCompletion(string $baseUrl, string $key, string $model, array $messages, Conversation $conversation, bool $stream = true): Response
     {
         // defeat output buffering so chunks reach the browser immediately
         while (ob_get_level() > 0) {
@@ -262,6 +266,101 @@ class ApiController extends BaseController
         $headersSent = false;
         $errorBody = '';
         $sseBody = '';
+
+        if ($stream) {
+            // live SSE pass; on a non-2xx the body is buffered in $errorBody
+            $ok = $this->postCompletion($baseUrl, $key, $model, $messages, true, $status, $headersSent, $sseBody, $errorBody, $conversation);
+            if ($headersSent) {
+                if ($this->extractStreamedText($sseBody) === '') {
+                    // 2xx but an empty stream (some gateways do this) — fall
+                    // through to the non-streaming retry below; headers are
+                    // already sent, so the synthetic chunk is just appended
+                    $headersSent = true;
+                } else {
+                    echo "data: [DONE]\n\n";
+                    flush();
+                    $this->persistReply($conversation, $this->extractStreamedText($sseBody));
+                    Yii::$app->response->isSent = true;
+                    return Yii::$app->response;
+                }
+            } elseif (!$ok) {
+                $errorBody = $errorBody !== '' ? $errorBody : 'curl error';
+            }
+        }
+
+        // Non-streaming mode, or streaming failed/returned empty: one plain
+        // POST, then wrap the full completion as a single synthetic SSE chunk
+        // so the frontend's SSE parser keeps working unchanged.
+        $status2 = 0;
+        $fullBody = '';
+        $this->postCompletion($baseUrl, $key, $model, $messages, false, $status2, $dummySent, $dummySse, $fullBody, null);
+        $full = json_decode($fullBody, true);
+        $text = $full['choices'][0]['message']['content'] ?? null;
+        if ($status2 >= 200 && $status2 < 300 && is_string($text) && $text !== '') {
+            $chunk = json_encode(['choices' => [['index' => 0, 'delta' => ['role' => 'assistant', 'content' => $text]]]]);
+            $sseBody = 'data: ' . $chunk . "\n\n";
+            if (!$headersSent) {
+                header('Content-Type: text/event-stream; charset=utf-8');
+                header('Cache-Control: no-cache');
+                header('X-Accel-Buffering: no');
+                header('X-Conversation-Uuid: ' . $conversation->uuid);
+            }
+            echo $sseBody;
+            echo "data: [DONE]\n\n";
+            flush();
+            $this->persistReply($conversation, $text);
+            Yii::$app->response->isSent = true;
+            return Yii::$app->response;
+        }
+
+        // error path: the upstream answered with a non-2xx JSON body
+        $errorBody = $fullBody !== '' ? $fullBody : $errorBody;
+        $status = $status2 >= 400 ? $status2 : ($status >= 400 ? $status : 502);
+        $message = 'openai request failed';
+        $decoded = json_decode($errorBody, true);
+        if (is_array($decoded) && isset($decoded['error']['message'])) {
+            $message = strval($decoded['error']['message']);
+        }
+        if ($headersSent) {
+            // SSE headers already went out (empty stream case) — report as a chunk
+            echo 'data: ' . json_encode(['error' => ['message' => $message]]) . "\n\n";
+            echo "data: [DONE]\n\n";
+            flush();
+            Yii::$app->response->isSent = true;
+            return Yii::$app->response;
+        }
+        Yii::$app->response->setStatusCode($status);
+        return $this->asJson(['message' => $message]);
+    }
+
+    /**
+     * Persist the assistant reply so the conversation context survives reloads.
+     */
+    private function persistReply(Conversation $conversation, string $text): void
+    {
+        if ($text === '') {
+            return;
+        }
+        $msg = new Message();
+        $msg->conversation_uuid = $conversation->uuid;
+        $msg->role = 'assistant';
+        $msg->content = $text;
+        $msg->created_time = time();
+        $msg->save(false);
+        Conversation::updateAll(['updated_time' => time()], ['uuid' => $conversation->uuid]);
+    }
+
+    /**
+     * POST /chat/completions. When $stream is true and the upstream answers
+     * 2xx, SSE headers are sent immediately and chunks are echoed live while
+     * being buffered into $sseBody; otherwise the raw body lands in $errorBody.
+     */
+    private function postCompletion(string $baseUrl, string $key, string $model, array $messages, bool $stream, ?int &$status, ?bool &$sent, ?string &$sseBody, ?string &$errorBody, ?Conversation $conversation): bool
+    {
+        $status = 0;
+        $sent = false;
+        $sseBody = '';
+        $errorBody = '';
 
         $ch = curl_init($baseUrl . '/chat/completions');
         curl_setopt_array($ch, [
@@ -274,74 +373,39 @@ class ApiController extends BaseController
             CURLOPT_POSTFIELDS => json_encode([
                 'model' => $model,
                 'messages' => $messages,
-                'stream' => true,
+                'stream' => $stream,
             ]),
             CURLOPT_TIMEOUT => 120,
-            CURLOPT_HEADERFUNCTION => function ($ch, $header) use (&$status, &$headersSent, $conversation) {
-                if (preg_match('#^HTTP/\S+\s+(\d{3})#i', $header, $m)) {
+            CURLOPT_HEADERFUNCTION => function ($ch, $header) use (&$status, &$sent, $conversation, $stream) {
+                if (preg_match('#^HTTP/\\S+\\s+(\d{3})#i', $header, $m)) {
                     $status = (int)$m[1];
                 }
-                if ($status >= 200 && $status < 300 && !$headersSent) {
+                if ($stream && $status >= 200 && $status < 300 && !$sent) {
                     header('Content-Type: text/event-stream; charset=utf-8');
                     header('Cache-Control: no-cache');
                     header('X-Accel-Buffering: no');
-                    header('X-Conversation-Uuid: ' . $conversation->uuid);
-                    $headersSent = true;
+                    if ($conversation !== null) {
+                        header('X-Conversation-Uuid: ' . $conversation->uuid);
+                    }
+                    $sent = true;
                 }
                 return strlen($header);
             },
-            CURLOPT_WRITEFUNCTION => function ($ch, $data) use (&$headersSent, &$errorBody, &$sseBody) {
-                if ($headersSent) {
+            CURLOPT_WRITEFUNCTION => function ($ch, $data) use (&$sent, &$errorBody, &$sseBody) {
+                if ($sent) {
                     $sseBody .= $data;
                     echo $data;
                     flush();
                 } else {
-                    // non-2xx: buffer the JSON error body instead of streaming it
                     $errorBody .= $data;
                 }
                 return strlen($data);
             },
         ]);
         $ok = curl_exec($ch);
-        $err = curl_error($ch);
         curl_close($ch);
-
-        if ($headersSent) {
-            if (!$ok && $err !== '') {
-                echo 'data: ' . json_encode(['error' => ['message' => $err]]) . "\n\n";
-                flush();
-            }
-            echo "data: [DONE]\n\n";
-            flush();
-
-            // persist the assistant reply so the context survives reloads
-            $reply = $this->extractStreamedText($sseBody);
-            if ($reply !== '') {
-                $msg = new Message();
-                $msg->conversation_uuid = $conversation->uuid;
-                $msg->role = 'assistant';
-                $msg->content = $reply;
-                $msg->created_time = time();
-                $msg->save(false);
-                Conversation::updateAll(['updated_time' => time()], ['uuid' => $conversation->uuid]);
-            }
-
-            Yii::$app->response->isSent = true;
-            return Yii::$app->response;
-        }
-
-        // error path: OpenAI answered with a non-2xx JSON body
-        $message = 'openai request failed';
-        $decoded = json_decode($errorBody, true);
-        if (is_array($decoded) && isset($decoded['error']['message'])) {
-            $message = strval($decoded['error']['message']);
-        } elseif (!$ok && $err !== '') {
-            $message = $err;
-        }
-        Yii::$app->response->setStatusCode($status >= 400 ? $status : 502);
-        return $this->asJson(['message' => $message]);
+        return $ok !== false;
     }
-
     /**
      * Reconstruct the full assistant text from a buffered SSE stream.
      */

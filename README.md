@@ -47,27 +47,22 @@ api/
 
 ## OpenAI key
 
-Set the key via environment variable (recommended):
+開箱即用：**預設串接 ai-tech-tw 提供的免費 OpenAI 相容 gateway**（<https://github.com/ai-tech-tw/openai>）
+— baseUrl `https://web-tech.tw/recv/openai/v1`、model `auto`、public trial key，不用申請。
+
+要用自己的 key / endpoint，設環境變數即可覆蓋預設值：
 
 ```sh
 export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL=gpt-4o-mini        # optional, default
-echo "OPENAI_BASE_URL=https://api.openai.com/v1"  # only for Azure/proxies/mocks
+export OPENAI_MODEL=gpt-4o-mini                          # optional
+export OPENAI_BASE_URL=https://api.openai.com/v1         # only for Azure/proxies/mocks
+export OPENAI_STREAM=false                               # 回應模式: true=串流SSE, false=非串流
 ```
 
-or via `api/config.local.php` (gitignored — see `config.local.sample.php`):
+或 via `api/config.local.php`（gitignored — see `config.local.sample.php`)。
 
-```php
-return [
-    'params' => [
-        'openai' => [
-            'key' => 'sk-...',
-            'model' => 'gpt-4o-mini',
-            'baseUrl' => 'https://api.openai.com/v1',
-        ],
-    ],
-];
-```
+回應模式（`stream`）：`true` 時以 SSE 串流逐字回傳（若 gateway 串流失敗會自動改非串流重試一次）；
+`false` 時整段回覆一次回傳（後端仍以單一 SSE chunk 送給前端，UI 不變）。免費 gateway 的串流偶發 502，設 `OPENAI_STREAM=false` 最穩。
 
 ## Default User
 

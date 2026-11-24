@@ -87,13 +87,18 @@ $config = [
             'start_tls' => filter_var(getenv('LDAP_STARTTLS') ?: 'false', FILTER_VALIDATE_BOOLEAN),
             'timeout' => (int)(getenv('LDAP_TIMEOUT') ?: 5),
         ],
-        // OpenAI settings. The key is read from the OPENAI_API_KEY env var;
-        // you can also override any of these in config.local.php (gitignored):
+        // OpenAI-compatible settings. Defaults point at the free ai-tech-tw
+        // gateway (https://github.com/ai-tech-tw/openai) so the app works out
+        // of the box; set OPENAI_API_KEY / OPENAI_MODEL / OPENAI_BASE_URL env
+        // vars (or config.local.php) to use your own key/endpoint instead:
         //   'params' => ['openai' => ['key' => 'sk-...', 'model' => 'gpt-4o', ...]]
         'openai' => [
-            'key' => getenv('OPENAI_API_KEY') ?: null,
-            'model' => getenv('OPENAI_MODEL') ?: 'gpt-4o-mini',
-            'baseUrl' => rtrim(getenv('OPENAI_BASE_URL') ?: 'https://api.openai.com/v1', '/'),
+            'key' => getenv('OPENAI_API_KEY') ?: 'nymph zr3Pjc68z4bOtw==', // ai-tech-tw public trial key
+            'model' => getenv('OPENAI_MODEL') ?: 'auto',
+            'baseUrl' => rtrim(getenv('OPENAI_BASE_URL') ?: 'https://web-tech.tw/recv/openai/v1', '/'),
+            // response mode: true = SSE streaming, false = single non-streaming
+            // request (the reply is still delivered to the UI as one SSE chunk)
+            'stream' => filter_var(getenv('OPENAI_STREAM') ?: 'true', FILTER_VALIDATE_BOOLEAN),
         ],
     ],
 ];

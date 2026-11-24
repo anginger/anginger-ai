@@ -30,12 +30,17 @@ return [
             'timeout' => 5,
         ],
         'openai' => [
-            // OpenAI API key (sk-...) — or set the OPENAI_API_KEY env var instead
-            'key' => 'sk-...',
-            // any chat model, e.g. gpt-4o-mini, gpt-4o, gpt-4.1
-            'model' => 'gpt-4o-mini',
-            // override only for Azure OpenAI / proxies / local mocks
-            'baseUrl' => 'https://api.openai.com/v1',
+            // Defaults (in config.php) use the free ai-tech-tw gateway
+            // (https://github.com/ai-tech-tw/openai): baseUrl
+            // https://web-tech.tw/recv/openai/v1, model "auto", public trial key.
+            // Set OPENAI_API_KEY / OPENAI_MODEL / OPENAI_BASE_URL env vars or
+            // override here to use your own key, e.g.:
+            // 'key' => 'sk-...',
+            // 'model' => 'gpt-4o-mini',
+            // 'baseUrl' => 'https://api.openai.com/v1',
+            // response mode: true = SSE streaming (falls back to non-streaming
+            // once if the gateway errors), false = always non-streaming
+            'stream' => true,
         ],
     ],
 ];
