@@ -17,13 +17,19 @@ $config = [
             'class' => 'yii\\db\\Connection',
             // To use MySQL instead of SQLite, change the DSN to e.g.
             // 'mysql:host=127.0.0.1;dbname=anginger_ai' and add username/password.
-            'dsn' => 'sqlite:@anginger/database.sqlite',
+            'dsn' => getenv('DB_DSN') ?: ('sqlite:' . (getenv('SQLITE_PATH') ?: '@anginger/database.sqlite')),
+            // SQLite: WAL + busy timeout + FK enforcement on every connection
+            'on afterOpen' => function ($event) {
+                if ($event->sender->driverName === 'sqlite') {
+                    $event->sender->createCommand('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;')->execute();
+                }
+            },
         ],
         'request' => [
             // required for the session cookie
-            'cookieValidationKey' => 'anginger-ai-dev-key-change-me-in-production',
+            'cookieValidationKey' => getenv('COOKIE_VALIDATION_KEY') ?: 'anginger-dev-key-change-me-in-production',
             // same-origin fetch() from the Alpine.js frontend
-            'enableCsrfValidation' => false,
+            'enableCsrfValidation' => true,
             'parsers' => [
                 'application/json' => 'yii\\web\\JsonParser',
             ],
@@ -36,6 +42,14 @@ $config = [
             'enableAutoLogin' => false,
             'loginUrl' => null, // API returns 401/403 JSON instead of redirecting
         ],
+        'session' => [
+            'cookieParams' => [
+                'httpOnly' => true,
+                'sameSite' => 'Lax',
+                'secure' => filter_var(getenv('SESSION_SECURE') ?: 'false', FILTER_VALIDATE_BOOLEAN),
+            ],
+        ],
+        'cache' => ['class' => 'yii\\caching\\FileCache'],
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
@@ -43,6 +57,7 @@ $config = [
                 // pages
                 'login' => 'site/login',
                 'logout' => 'site/logout',
+                'health' => 'site/health',
                 // every business domain is a module with its own page + JSON API
                 '<module:chat|user>' => '<module>/page/index',
                 // JSON/SSE API consumed by the Alpine.js frontend (fetch)
@@ -93,7 +108,7 @@ $config = [
         // vars (or config.local.php) to use your own key/endpoint instead:
         //   'params' => ['openai' => ['key' => 'sk-...', 'model' => 'gpt-4o', ...]]
         'openai' => [
-            'key' => getenv('OPENAI_API_KEY') ?: 'nymph zr3Pjc68z4bOtw==', // ai-tech-tw public trial key
+            'key' => getenv('OPENAI_API_KEY') ?: '', // must be provided via env / config.local.php
             'model' => getenv('OPENAI_MODEL') ?: 'auto',
             'baseUrl' => rtrim(getenv('OPENAI_BASE_URL') ?: 'https://web-tech.tw/recv/openai/v1', '/'),
             // response mode: true = SSE streaming, false = single non-streaming

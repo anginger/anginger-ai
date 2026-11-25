@@ -17,7 +17,21 @@ class SiteController extends BaseController
 {
     public $layout = '@app/views/layouts/main';
 
-    public function actionIndex(): Response
+        /**
+     * Unauthenticated health check for Docker / Render.
+     */
+    public function actionHealth(): Response
+    {
+        try {
+            Yii::$app->db->createCommand('SELECT 1')->queryScalar();
+        } catch (\Throwable $e) {
+            Yii::$app->response->setStatusCode(503);
+            return $this->asJson(['status' => 'error']);
+        }
+        return $this->asJson(['status' => 'ok']);
+    }
+
+public function actionIndex(): Response
     {
         if (Yii::$app->user->isGuest) {
             return $this->redirect(['site/login']);
@@ -36,6 +50,10 @@ class SiteController extends BaseController
 
     public function actionLogout(): Response
     {
+        $identity = Yii::$app->user->identity;
+        if ($identity instanceof User) {
+            Yii::$app->params['history_user'] = $identity->uuid; // keep attribution after logout
+        }
         Yii::$app->user->logout();
         return $this->redirect(['site/login']);
     }

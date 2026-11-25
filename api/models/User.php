@@ -71,17 +71,37 @@ class User extends ActiveRecord implements IdentityInterface
     {
         return static::findOne([
             'username' => $username,
-            'password' => hash('sha256', $password),
+            'password' => \anginger\components\AuthService::hashPassword($password),
         ]);
     }
 
     /**
      * The password hash must never leak into API responses.
      */
-    public function fields(): array
+        public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function beforeDelete(): bool
+    {
+        if (!parent::beforeDelete()) {
+            return false;
+        }
+        foreach (Conversation::findAll(['user_uuid' => $this->uuid]) as $conv) {
+            foreach (Message::findAll(['conversation_uuid' => $conv->uuid]) as $msg) {
+                $msg->delete();
+            }
+            $conv->delete();
+        }
+        return true;
+    }
+
+public function fields(): array
     {
         $fields = parent::fields();
         unset($fields['password']);
+        unset($fields['ldap_dn']);
         return $fields;
     }
 
