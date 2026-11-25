@@ -26,7 +26,17 @@ ChatAsset::register($this);
                     </div>
                 </a>
             </template>
-            <div class="empty" x-show="filtered().length === 0">尚無對話</div>
+            <template x-if="loadingConvs">
+                <div aria-hidden="true">
+                    <div class="skel" style="height:2.4rem;margin-bottom:.5rem"></div>
+                    <div class="skel" style="height:2.4rem;margin-bottom:.5rem"></div>
+                    <div class="skel" style="height:2.4rem"></div>
+                </div>
+            </template>
+            <div class="empty" x-show="!loadingConvs && filtered().length === 0">
+                尚無對話<br>
+                <button class="ts-button is-small is-outlined" style="margin-top:.5rem" @click="newConversation()">+ 建立第一個對話</button>
+            </div>
         </div>
     </aside>
 

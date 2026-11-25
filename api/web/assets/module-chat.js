@@ -14,6 +14,7 @@ document.addEventListener('alpine:init', () => {
         messages: [],           // messages of the current conversation
         input: '',
         loading: false,
+        loadingConvs: true,
         error: '',
         model: window.__MODEL__ || '',
         settingsOpen: false,
@@ -32,8 +33,13 @@ document.addEventListener('alpine:init', () => {
         },
 
         async refreshConversations() {
-            const r = await fetch('/api/chat/conversations', {credentials: 'same-origin'});
-            if (r.ok) this.conversations = await r.json();
+            this.loadingConvs = true;
+            try {
+                const r = await fetch('/api/chat/conversations', {credentials: 'same-origin'});
+                if (r.ok) this.conversations = await r.json();
+            } finally {
+                this.loadingConvs = false;
+            }
         },
 
         scrollBottom() {

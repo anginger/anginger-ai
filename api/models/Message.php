@@ -25,4 +25,15 @@ class Message extends ActiveRecord
     {
         return '{{%messages}}';
     }
+
+    public function rules(): array
+    {
+        return [
+            [['conversation_uuid', 'role', 'content', 'created_time'], 'required'],
+            [['conversation_uuid'], 'string', 'max' => 36],
+            [['role'], 'in', 'range' => ['system', 'user', 'assistant']],
+            [['content'], 'string'],
+            [['created_time'], 'integer'],
+        ];
+    }
 }

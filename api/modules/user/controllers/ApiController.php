@@ -75,6 +75,7 @@ class ApiController extends ResourceController
             $response->setStatusCode(403);
             $response->format = Response::FORMAT_JSON;
             $response->data = ['message' => 'forbidden'];
+            $this->logHistory();
             return false;
         }
         return true;

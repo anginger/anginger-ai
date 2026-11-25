@@ -130,7 +130,9 @@ class ApiController extends BaseController
             $conv->system_prompt = trim(strval($body['system_prompt'] ?? '')) ?: null;
             $conv->created_time = time();
             $conv->updated_time = $conv->created_time;
-            if (!$conv->save(false)) {
+            if (!$conv->save()) {
+                Yii::$app->response->setStatusCode(400);
+                return $this->asJson(["message" => "validation failed", "errors" => $conv->errors]);
                 return $this->serverError();
             }
             Yii::$app->response->setStatusCode(201);
@@ -186,7 +188,11 @@ class ApiController extends BaseController
                     $conv->system_prompt = trim(strval($body['system_prompt'])) ?: null;
                 }
                 $conv->updated_time = time();
-                return $conv->save(false) ? $this->emptyResponse(204) : $this->serverError();
+                if (!$conv->save()) {
+                    Yii::$app->response->setStatusCode(400);
+                    return $this->asJson(["message" => "validation failed", "errors" => $conv->errors]);
+                }
+                return $this->emptyResponse(204);
 
             case 'DELETE':
                 Message::deleteAll(['conversation_uuid' => $conv->uuid]);

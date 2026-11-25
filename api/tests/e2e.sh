@@ -34,11 +34,26 @@ check "6th bad login rate-limited" 429 "$(curl -s -o /dev/null -w '%{http_code}'
 # 5. good login -> 201
 check "POST login admin/admin" 201 "$(curl -s -o /dev/null -w '%{http_code}' -b "$JAR" -c "$JAR" -X POST "$BASE/api/authentic/session" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" -d '{"username":"admin","password":"admin"}')"
 
+# login rotates the session (and with it the CSRF token) - re-read the meta
+curl -sL -b "$JAR" -c "$JAR" "$BASE/" -o "$OUT"
+CSRF=$(grep -o 'csrf-token" content="[^"]*"' "$OUT" | head -1 | sed 's/.*content="//;s/"//')
+
 # 6. session + CSRF-protected API with cookie
 check "GET session" 200 "$(curl -s -o /dev/null -w '%{http_code}' -b "$JAR" "$BASE/api/authentic/session")"
 check "GET /api/user/all (authed)" 200 "$(curl -s -o /dev/null -w '%{http_code}' -b "$JAR" "$BASE/api/user/all")"
 
 # 7. API without session -> 401
 check "GET /api/user/all (guest)" 403 "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/user/all")"
+
+# --- conversation CRUD flow (admin session in $JAR; no upstream key needed) ---
+api() { curl -s -o /dev/null -w "%{http_code}" -b "$JAR" -c "$JAR" -X "$1" "$BASE$2" -H "Content-Type: application/json" -H "X-CSRF-Token: $CSRF" ${3:+-d "$3"}; }
+CTITLE="E2E $((RANDOM % 10000))"
+check "create conversation" 201 "$(api POST /api/chat/conversations "{\"title\":\"$CTITLE\",\"system_prompt\":\"You are terse.\"}")"
+CUUID=$(curl -s -b "$JAR" "$BASE/api/chat/conversations" | php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach((array)$j as $cv){ if(($cv["title"]??"")===$argv[1]){ echo $cv["uuid"]; break; } }' "$CTITLE")
+[ -n "$CUUID" ] || { echo "FAIL could not look up created conversation"; exit 1; }
+check "read conversation" 200 "$(api GET "/api/chat/conversation?uuid=$CUUID")"
+check "update conversation (rename + system prompt)" 204 "$(api PUT /api/chat/conversation "{\"uuid\":\"$CUUID\",\"title\":\"$CTITLE-renamed\",\"system_prompt\":\"Be brief.\"}")"
+check "delete conversation" 204 "$(api DELETE "/api/chat/conversation?uuid=$CUUID")"
+check "deleted conversation -> 404" 404 "$(api GET "/api/chat/conversation?uuid=$CUUID")"
 
 exit $fail

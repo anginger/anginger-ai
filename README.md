@@ -82,7 +82,7 @@ export OPENAI_STREAM=false                               # 回應模式: true=�
 環境變數一覽（AD 範例）：`LDAP_HOST`、`LDAP_PORT`（636=LDAPS）、`LDAP_BASE_DN`、
 `LDAP_BIND_DN`/`LDAP_BIND_PASSWORD`（服務帳號搜尋）或 `LDAP_USER_DN_PATTERN`（直接 bind）、
 `LDAP_USER_FILTER`（AD: `(sAMAccountName=%s)`）、`LDAP_USERNAME_ATTRIBUTE`（AD: `sAMAccountName`）、
-`LDAP_STARTTLS`、`LDAP_TIMEOUT`。需要 PHP **ext-ldap**（Docker image 已內建 `php8-ldap`）。
+`LDAP_STARTTLS`、`LDAP_TIMEOUT`、`LDAP_DISPLAY_NAME_ATTRIBUTE`（預設 `cn`）、`LDAP_EMAIL_ATTRIBUTE`（預設 `mail`）。需要 PHP **ext-ldap**（Docker image 已內建 `php8-ldap`）。
 
 ## Deploy / Render
 
@@ -115,6 +115,11 @@ cd web && php -S 127.0.0.1:1270 index.php
 | DELETE | `/api/authentic/session` | logout (204)                                             |
 | GET    | `/api/chat`              | `{"model": "..."}` (200)                                 |
 | POST   | `/api/chat`              | body `{"messages":[...]}` → SSE stream of the completion |
+| GET    | `/api/chat/conversations` | my conversations (200) |
+| POST   | `/api/chat/conversations` | create conversation `{title, system_prompt}` (201) |
+| GET/POST/PUT/DELETE | `/api/chat/conversation` | one conversation by `uuid` (read / rename+system prompt / delete) |
+| GET    | `/api/user/all`          | user list, admin only (200/403) |
+| POST   | `/api/user/archive`      | archive/unarchive `{uuid, archived}`, admin only (423 on archived login) |
 
 Unauthenticated API calls return `403 {"message":"forbidden"}`; pages redirect
 to `/login`. Every request is logged into the `histories` table.
