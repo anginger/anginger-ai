@@ -133,7 +133,7 @@ class ApiController extends ResourceController
         $user = new User();
         $user->uuid = self::uuidV7();
         $user->username = strval($form['username']);
-        $user->password = hash('sha256', strval($form['password']));
+        $user->password = \anginger\components\AuthService::hashPassword(strval($form['password']));
         $user->display_name = strval($form['display_name']);
         $user->role = strval($form['role']);
         $user->created_time = time();
@@ -147,7 +147,7 @@ class ApiController extends ResourceController
         $model->display_name = strval($form['display_name']);
         $model->role = strval($form['role']);
         if (!empty($form['password'])) {
-            $model->password = hash('sha256', strval($form['password']));
+            $model->password = \anginger\components\AuthService::hashPassword(strval($form['password']));
         }
     }
 

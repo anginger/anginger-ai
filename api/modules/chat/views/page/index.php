@@ -18,7 +18,7 @@ ChatAsset::register($this);
         <button class="ts-button is-fluid" @click="newConversation()">+ 新對話</button>
         <div class="conv-list">
             <template x-for="c in conversations" :key="c.uuid">
-                <a class="conv-item" :class="{ 'is-active': current && current.uuid === c.uuid }" @click.prevent="openConversation(c.uuid)">
+                <a class="conv-item" tabindex="0" role="button" :class="{ 'is-active': current && current.uuid === c.uuid }" @click.prevent="openConversation(c.uuid)">
                     <div class="conv-title" x-text="c.title"></div>
                     <div class="conv-meta">
                         <span x-text="c.message_count + ' 訊息'"></span>
@@ -76,5 +76,5 @@ ChatAsset::register($this);
     </dialog>
 </div>
 <script>
-    window.__MODEL__ = <?= json_encode($model) ?>;
+    window.__MODEL__ = <?= \yii\helpers\Json::htmlEncode($model) ?>;
 </script>

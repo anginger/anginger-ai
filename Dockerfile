@@ -19,3 +19,5 @@ WORKDIR /app
 EXPOSE 8888
 # pass the key at runtime: docker run -e OPENAI_API_KEY=sk-... -e OPENAI_MODEL=gpt-4o-mini ...
 CMD ["sh", "-c", "su -s /bin/sh nginx -c \"php84 /app/api/console.php migrate --interactive=0\" && exec /usr/bin/supervisord -c /etc/supervisord.conf"]
+
+HEALTHCHECK --interval=30s --timeout=3s CMD php -r "exit(@file_get_contents('http://127.0.0.1:80/health') === false ? 1 : 0);"

@@ -12,6 +12,9 @@ use Yii;
 
 class PageController extends PageBaseController
 {
+    /** Chat is available to every logged-in user. */
+    public bool $requireAdmin = false;
+
     public function actionIndex(): string
     {
         return $this->render('index', [

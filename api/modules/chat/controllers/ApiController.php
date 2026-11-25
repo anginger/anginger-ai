@@ -80,6 +80,11 @@ class ApiController extends BaseController
             $context[] = ['role' => $m->role, 'content' => $m->content];
         }
         $context = array_merge($context, $newMessages);
+        // cap the context window: system prompt + latest 30 turns
+        if (count($context) > 31) {
+            $sys = array_slice($context, 0, 1);
+            $context = array_merge($sys, array_slice($context, -30));
+        }
 
         // persist the new user message(s) before streaming
         foreach ($newMessages as $m) {
@@ -93,6 +98,10 @@ class ApiController extends BaseController
 
         $openai = Yii::$app->params['openai'] ?? [];
         $key = $openai['key'] ?? null;
+        if (trim(strval($key)) === '') {
+            Yii::$app->response->setStatusCode(503);
+            return $this->asJson(['message' => '未設定 OPENAI_API_KEY，請聯繫管理員']);
+        }
         $model = $openai['model'] ?? 'gpt-4o-mini';
         $baseUrl = $openai['baseUrl'] ?? 'https://api.openai.com/v1';
         if (empty($key)) {
@@ -151,7 +160,7 @@ class ApiController extends BaseController
         }
         $request = Yii::$app->request;
         $uuid = $request->getQueryParam('uuid', $request->getBodyParam('uuid'));
-        if (empty($uuid)) {
+        if (!is_scalar($uuid) || $uuid === '') {
             return $this->badRequest();
         }
         $conv = $this->findOwnConversation($uuid);
@@ -196,8 +205,8 @@ class ApiController extends BaseController
     private function resolveConversation(?string $uuid, array $newMessages): Conversation|Response
     {
         $userUuid = Yii::$app->user->identity->uuid;
-        if (!empty($uuid)) {
-            $conv = $this->findOwnConversation($uuid);
+        if (!empty($uuid) && is_scalar($uuid)) {
+            $conv = $this->findOwnConversation(strval($uuid));
             return $conv ?? $this->notFound();
         }
         // no conversation given: create one, titled after the first message
@@ -241,7 +250,7 @@ class ApiController extends BaseController
             if (!is_array($m) || !isset($m['role'], $m['content'])) {
                 continue;
             }
-            $role = in_array($m['role'], ['system', 'user', 'assistant'], true) ? $m['role'] : 'user';
+            $role = 'user'; // client may never inject system/assistant messages (prompt injection)
             $content = trim(strval($m['content']));
             if ($content === '') {
                 continue;
@@ -319,8 +328,9 @@ class ApiController extends BaseController
         $message = 'openai request failed';
         $decoded = json_decode($errorBody, true);
         if (is_array($decoded) && isset($decoded['error']['message'])) {
-            $message = strval($decoded['error']['message']);
+            Yii::error('OpenAI upstream error: ' . strval($decoded['error']['message'])); // detail stays server-side
         }
+        $message = '上游 AI 服務發生錯誤，請稍後再試';
         if ($headersSent) {
             // SSE headers already went out (empty stream case) — report as a chunk
             echo 'data: ' . json_encode(['error' => ['message' => $message]]) . "\n\n";
@@ -375,6 +385,7 @@ class ApiController extends BaseController
                 'messages' => $messages,
                 'stream' => $stream,
             ]),
+            CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_TIMEOUT => 120,
             CURLOPT_HEADERFUNCTION => function ($ch, $header) use (&$status, &$sent, $conversation, $stream) {
                 if (preg_match('#^HTTP/\\S+\\s+(\d{3})#i', $header, $m)) {
@@ -412,7 +423,7 @@ class ApiController extends BaseController
     private function extractStreamedText(string $sse): string
     {
         $text = '';
-        foreach (preg_split('/\n\n/', $sse) as $event) {
+        foreach (preg_split('/\r?\n\r?\n/', $sse) as $event) {
             if (!str_starts_with($event, 'data:')) {
                 continue;
             }
