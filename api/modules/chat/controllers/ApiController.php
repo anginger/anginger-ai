@@ -86,13 +86,21 @@ class ApiController extends BaseController
             $context = array_merge($sys, array_slice($context, -30));
         }
 
-        // persist the new user message(s) before streaming
+        // persist the new user message(s) before streaming; a retry carrying the
+        // same client_id must not create a duplicate row (idempotent re-send)
         foreach ($newMessages as $m) {
+            if (!empty($m['client_id'])
+                && Message::find()->where(['conversation_uuid' => $conversation->uuid, 'client_id' => $m['client_id']])->exists()) {
+                continue;
+            }
             $msg = new Message();
             $msg->conversation_uuid = $conversation->uuid;
             $msg->role = $m['role'];
             $msg->content = $m['content'];
             $msg->created_time = time();
+            if (!empty($m['client_id'])) {
+                $msg->client_id = $m['client_id'];
+            }
             $msg->save(false);
         }
 
@@ -208,10 +216,14 @@ class ApiController extends BaseController
      *
      * @return Conversation|Response
      */
-    private function resolveConversation(?string $uuid, array $newMessages): Conversation|Response
+    private function resolveConversation(mixed $uuid, array $newMessages): Conversation|Response
     {
         $userUuid = Yii::$app->user->identity->uuid;
-        if (!empty($uuid) && is_scalar($uuid)) {
+        if (!is_scalar($uuid) && $uuid !== null) {
+            return $this->badRequest(); // e.g. {"conversation_uuid": ["x"]} would TypeError on ?string
+        }
+        $uuid = $uuid === null ? null : strval($uuid);
+        if (!empty($uuid)) {
             $conv = $this->findOwnConversation(strval($uuid));
             return $conv ?? $this->notFound();
         }
@@ -261,7 +273,15 @@ class ApiController extends BaseController
             if ($content === '') {
                 continue;
             }
-            $clean[] = ['role' => $role, 'content' => $content];
+            $msg = ['role' => $role, 'content' => $content];
+            // optional idempotency key for retries (validated, never echoed raw)
+            if (isset($m['client_id']) && is_scalar($m['client_id'])) {
+                $cid = strval($m['client_id']);
+                if ($cid !== '' && strlen($cid) <= 36) {
+                    $msg['client_id'] = $cid;
+                }
+            }
+            $clean[] = $msg;
         }
         return $clean ?: null;
     }

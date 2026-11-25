@@ -126,6 +126,8 @@ document.addEventListener('alpine:init', () => {
             const placeholder = {role: 'assistant', content: ''};
             this.messages.push(placeholder);
             this.scrollBottom();
+            // per-send idempotency key: a retry of this POST must not duplicate the DB row
+            const clientId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
 
             try {
                 const r = await fetch('/api/chat', {
@@ -134,7 +136,7 @@ document.addEventListener('alpine:init', () => {
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         conversation_uuid: this.current.uuid,
-                        messages: [{role: 'user', content: text}]
+                        messages: [{role: 'user', content: text, client_id: clientId}]
                     })
                 });
 
@@ -149,7 +151,11 @@ document.addEventListener('alpine:init', () => {
                 const convUuid = r.headers.get('x-conversation-uuid');
                 if (convUuid && (!this.current || this.current.uuid !== convUuid)) {
                     await this.openConversation(convUuid);
-                    this.messages.push({role: 'user', content: text}, placeholder);
+                    // openConversation() replaced this.messages with the server copy,
+                    // which already contains the persisted user message — add only the placeholder
+                    if (this.current && this.current.uuid === convUuid && !this.messages.some(m => m.role === 'assistant' && m.content === '')) {
+                        this.messages.push(placeholder);
+                    }
                 }
 
                 const reader = r.body.getReader();

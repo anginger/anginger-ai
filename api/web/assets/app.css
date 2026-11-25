@@ -278,12 +278,16 @@ a, button, .ts-button, .ts-menu .item { touch-action: manipulation; }
 @keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* deter-style: chat sidebar as interactive segments */
-.conv-item { display: block; padding: 0.55rem 0.7rem; border-radius: var(--ts-border-radius-element); text-decoration: none; color: inherit; transition: background-color .12s ease, transform .1s ease; }
+.conv-row { display: flex; align-items: center; gap: 0.25rem; border-radius: var(--ts-border-radius-element); }
+.conv-row.is-active { background: var(--ts-gray-200); box-shadow: inset 2px 0 0 var(--brand-500); }
+.conv-item { display: block; flex: 1; min-width: 0; text-align: left; padding: 0.55rem 0.7rem; border: 0; border-radius: var(--ts-border-radius-element); background: transparent; color: inherit; font: inherit; cursor: pointer; transition: background-color .12s ease, transform .1s ease; }
 .conv-item:hover { background: var(--ts-gray-100); }
+.conv-row:hover .conv-item { background: transparent; }
 .conv-item:active { transform: scale(0.985); }
-.conv-item.is-active { background: var(--ts-gray-200); box-shadow: inset 2px 0 0 var(--brand-500); color: var(--ts-gray-900); }
-.conv-title { font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.conv-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 0.15rem; font-size: 0.75rem; color: var(--ts-gray-500); }
+.conv-row.is-active .conv-item { color: var(--ts-gray-900); }
+.conv-title { display: block; font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-meta { display: block; margin-top: 0.15rem; font-size: 0.75rem; color: var(--ts-gray-500); }
+.conv-del { flex: none; }
 
 /* AA contrast (light): solid negative button uses the 600 shade (white on 500 is ~4.0:1) */
 :root:not([data-theme="dark"]) .ts-button.is-negative:not(.is-outlined):not(.is-secondary) { background: var(--ts-negative-600); border-color: var(--ts-negative-600); }
