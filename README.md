@@ -135,6 +135,16 @@ Open <http://localhost:8888/login>. The container runs
 `php console.php migrate` on boot. nginx disables buffering for the SSE
 stream (`fastcgi_buffering off`).
 
+## Security
+
+- Session-based auth; all management pages/APIs are admin-only (403 otherwise). `User::fields()` never exposes the password hash or `ldap_dn`.
+- CSRF is enabled globally: the layout emits a meta token and `app-ui.js` injects `X-CSRF-Token` into every same-origin mutating fetch (missing token -> 400).
+- Passwords are bcrypt via `Yii::$app->security`; legacy sha256 hashes still verify and are transparently re-hashed on successful login.
+- Login rate limit: 5 failed attempts per IP+username per 15 minutes -> 429. Archived accounts get 423 and their existing sessions are invalidated immediately.
+- All view-embedded JSON goes through `Json::htmlEncode` (no `</script>` breakout); Alpine templates use `x-text`, never `x-html`.
+- AI gateway calls force every upstream message to `role=user` (prompt-injection guard: the system prompt only comes from the server-side conversation settings), cap context at system + last 30 messages, and SSE parsing normalizes CRLF before splitting `data:` lines.
+- SQLite runs in WAL mode with `foreign_keys=ON`; `GET /health` verifies the DB connection.
+
 ## Operational notes
 
 - Error codes: `401` 未登入、`403` 已登入但無權限（管理功能限 admin）、`423` 帳號已封存、`429` 登入嘗試過於頻繁（5 次 / 15 分鐘，鎖定後回 429）。
