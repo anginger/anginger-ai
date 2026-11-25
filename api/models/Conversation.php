@@ -31,4 +31,15 @@ class Conversation extends ActiveRecord
         return $this->hasMany(Message::class, ['conversation_uuid' => 'uuid'])
             ->orderBy(['id' => SORT_ASC]);
     }
+
+    public function rules(): array
+    {
+        return [
+            [['uuid', 'user_uuid', 'title', 'created_time', 'updated_time'], 'required'],
+            [['uuid', 'user_uuid'], 'string', 'max' => 36],
+            [['title'], 'string', 'max' => 200],
+            [['system_prompt'], 'string'],
+            [['created_time', 'updated_time'], 'integer'],
+        ];
+    }
 }
