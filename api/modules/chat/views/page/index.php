@@ -18,13 +18,13 @@ ChatAsset::register($this);
         <button class="ts-button is-fluid" @click="newConversation()">+ 新對話</button>
         <div class="conv-list">
             <template x-for="c in filtered" :key="c.uuid">
-                <a class="conv-item" tabindex="0" role="button" :class="{ 'is-active': current && current.uuid === c.uuid }" @click.prevent="openConversation(c.uuid)">
-                    <div class="conv-title" x-text="c.title"></div>
-                    <div class="conv-meta">
-                        <span x-text="c.message_count + ' 訊息'"></span>
-                        <button class="ts-button is-small is-negative is-outlined" @click.stop.prevent="removeConversation(c)">刪除</button>
-                    </div>
-                </a>
+                <div class="conv-row" :class="{ 'is-active': current && current.uuid === c.uuid }">
+                    <button type="button" class="conv-item" :aria-current="current && current.uuid === c.uuid ? 'true' : null" @click="openConversation(c.uuid)">
+                        <span class="conv-title" x-text="c.title"></span>
+                        <span class="conv-meta" x-text="c.message_count + ' 訊息'"></span>
+                    </button>
+                    <button type="button" class="ts-button is-small is-negative is-outlined conv-del" :aria-label="'刪除對話 ' + c.title" @click="removeConversation(c)">刪除</button>
+                </div>
             </template>
             <template x-if="loadingConvs">
                 <div aria-hidden="true">
@@ -68,7 +68,7 @@ ChatAsset::register($this);
         </div>
     </section>
 
-    <dialog class="ts-modal" :open="settingsOpen" @click.self="settingsOpen = false">
+    <dialog class="ts-modal" x-modal="settingsOpen" @modal-close="settingsOpen = false" @click.self="settingsOpen = false">
         <form class="content" @submit.prevent="saveSettings()">
             <h2>對話設定</h2>
             <p class="error" aria-live="polite" x-show="settingsMessage" x-text="settingsMessage"></p>

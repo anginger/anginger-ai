@@ -10,6 +10,7 @@
 #   export OPENAI_API_KEY=sk-...
 #   export OPENAI_MODEL=gpt-4o-mini   # optional, this is the default
 set -e
+export YII_ENV=dev YII_DEBUG=true
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 

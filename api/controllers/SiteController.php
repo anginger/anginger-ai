@@ -7,6 +7,7 @@
 
 namespace anginger\controllers;
 
+use anginger\models\User;
 use Yii;
 use yii\web\Response;
 
