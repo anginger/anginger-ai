@@ -17,7 +17,7 @@ ChatAsset::register($this);
     <aside class="ts-box chat-sidebar">
         <button class="ts-button is-fluid" @click="newConversation()">+ 新對話</button>
         <div class="conv-list">
-            <template x-for="c in conversations" :key="c.uuid">
+            <template x-for="c in filtered" :key="c.uuid">
                 <a class="conv-item" tabindex="0" role="button" :class="{ 'is-active': current && current.uuid === c.uuid }" @click.prevent="openConversation(c.uuid)">
                     <div class="conv-title" x-text="c.title"></div>
                     <div class="conv-meta">
@@ -26,7 +26,7 @@ ChatAsset::register($this);
                     </div>
                 </a>
             </template>
-            <div class="empty" x-show="conversations.length === 0">尚無對話</div>
+            <div class="empty" x-show="filtered().length === 0">尚無對話</div>
         </div>
     </aside>
 
